@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const authRoute = require('./routes/auth');
 const sqlConnection = require('./utils/db-connection');
+const shopRoute = require('./routes/shop');
 
 //DB Tabels
 const User = require('./models/User');
@@ -14,6 +15,7 @@ const application = express();
 application.use(bodyParser.json());
 
 application.use('/auth', authRoute);
+application.use('/all', shopRoute);
 
 application.use((error, req, res, next) => {
 

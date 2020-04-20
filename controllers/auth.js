@@ -61,11 +61,15 @@ exports.checkRegisterToken = async (req, res, next) => {
             let regUser = await RegisterUser.findOne( {where : {token}});
 
             if(regUser) {
-                let valid = jwt.verify(regUser.token, process.env.REGISTER_SECRET);
-
-                if(valid) return res.status(200).json({message : 'token is valid', email : regUser.email});
                 
-                return res.status(400).json({message : 'invalid token'});
+                try {
+                    let valid = jwt.verify(regUser.token, process.env.REGISTER_SECRET);
+                } catch (error) {
+                    return res.status(400).json({message : 'invalid token'});
+                }
+                
+                return res.status(200).json({message : 'token is valid', email : regUser.email});    
+
             }
 
             return res.status(400).json({message : 'user associated with this token could not be found'});            
@@ -103,11 +107,13 @@ exports.register = async (req, res, next) => {
         let regUser = await RegisterUser.findOne({ where : {email}});
 
         if(!regUser) return res.status(409).json({message : 'no user matched to this token'})
-
-        let valid = jwt.verify(regUser.token, process.env.REGISTER_SECRET);
-
-        if(!valid) return res.status(400).json({message : 'invalid token'}); 
-
+        
+        try {
+            let valid = jwt.verify(regUser.token, process.env.REGISTER_SECRET);    
+        } catch (error) {
+            return res.status(400).json({message : 'invalid token'}); 
+        }
+        
         await User.create({email, username, password});
         await regUser.destroy();        
 
