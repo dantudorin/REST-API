@@ -3,6 +3,7 @@ const User = require('../models/User');
 const RegisterUser = require('../models/RegisterUser');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const emailSender = require('../utils/email');
 
 exports.signUp = async (req, res, next) => {
 
@@ -13,13 +14,14 @@ exports.signUp = async (req, res, next) => {
             return res.status(422).json({error : error.array()[0].msg});
         }
 
-        let user = await User.findOne({email : req.body.email});
+        let email = req.body.email;
+        let user = await User.findOne({ where : {email}});
 
         if(user) {
             return res.status(400).json({message : 'User already exists!'});
         }
         
-        let registerUser = await RegisterUser.findOne({email : req.body.email});
+        let registerUser = await RegisterUser.findOne({ where : {email}});
         let token = await jwt.sign(
             {target : 'registration token for user'}, 
             process.env.REGISTER_SECRET, {expiresIn : '1d'}
@@ -30,18 +32,17 @@ exports.signUp = async (req, res, next) => {
         if(!registerUser) {
 
             await RegisterUser.create({
-                email : req.body.email,
+                email,
                 token
             });
 
-            //TODO send email to user
-
+        //    emailSender.sendEmail(email, token, 'register-user');
             return res.status(201).json({message : 'user registration token has been created!'});
         } 
         
         await registerUser.update({ token });
 
-        //TODO send email to user
+    //    emailSender.sendEmail(email, token, 'register-user');
         return res.status(200).json({message : 'user registration token has been updated!'});
     
     }catch (error) {
@@ -56,7 +57,7 @@ exports.checkRegisterToken = async (req, res, next) => {
         let token = req.params.regToken;
 
         if(token) {  
-            let regUser = await RegisterUser.findOne({token});
+            let regUser = await RegisterUser.findOne( {where : {token}});
 
             if(regUser) {
                 let valid = jwt.verify(regUser.token, process.env.REGISTER_SECRET);
@@ -83,22 +84,22 @@ exports.register = async (req, res, next) => {
         let error = validationResult(req);   
         
         if(!error.isEmpty()) {
-            return res.status(422).json({error : error.array()})
+            return res.status(422).json({error : error.array()[0].msg});
         }
 
         let email = req.body.email;
-        let username = req.body.email;
+        let username = req.body.username;
         let password = req.body.password;
 
-        let user = await User.findOne({email});
+        let user = await User.findOne({ where : {email}});
         if(user) return res.status(400).json({message : 'A user with this email already exists'});
         
-        user = await User.findOne({username});
+        user = await User.findOne({ where : {username}});
         if(user) return res.status(400).json({message : 'username in use. Please choose another one'});
         
         password = await bcrypt.hash(password, 12);
 
-        let regUser = await RegisterUser.findOne({email});
+        let regUser = await RegisterUser.findOne({ where : {email}});
 
         if(!regUser) return res.status(409).json({message : 'no user matched to this token'})
 
