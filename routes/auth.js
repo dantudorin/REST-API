@@ -29,4 +29,9 @@ router.post('/register', [
     })
 ] ,authController.register);
 
+router.post('/login', [
+    check('credential', 'not enough characters').isLength({min : 5}),
+    check('password', 'not enough characters').isLength({min : 5})
+], authController.login);
+
 module.exports = router;

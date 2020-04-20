@@ -4,6 +4,7 @@ const RegisterUser = require('../models/RegisterUser');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const emailSender = require('../utils/email');
+const { Op } = require('sequelize');
 
 exports.signUp = async (req, res, next) => {
 
@@ -117,3 +118,32 @@ exports.register = async (req, res, next) => {
         next(error);
     }  
 };
+
+exports.login = async (req, res, next) => {
+    try {
+        let error = validationResult(req);
+
+        if(!error.isEmpty()) return res.status(422).json({error : error.array()[0].msg});
+
+        let credential = req.body.credential;
+        let password = req.body.password;
+        
+        let user = await User.findOne({ where : {
+            [Op.or] : [{email : credential} , {username : credential}]
+        }});
+        
+        if(!user) return res.status(400).json({message : 'user not found'});
+
+        let result = await bcrypt.compare(password, user.password);
+
+        if(!result) return res.status(400).json({ message : 'password missmatched'});
+        
+        let token = jwt.sign({email : user.email, userId : user.id}, process.env.LOGIN_SECRET, { expiresIn : '3d'});
+
+        return res.status(200).json({token});
+
+    } catch (error) {
+        console.log(error);
+        next(error);
+    }
+}
