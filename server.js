@@ -76,6 +76,9 @@ application.use((error, req, res, next) => {
 
 //Tables initialization if they do not exist in database and then starts the server 
 //{force : true}
+
+User.hasMany(Post);
+
 sqlConnection.sync()
              .then(() => {
                  application.listen(SERVER_PORT);
